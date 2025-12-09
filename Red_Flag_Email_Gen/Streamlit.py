@@ -30,29 +30,42 @@ if uploaded_file:
 
     df = df.replace("(No value)", None)
 
-    # Parse dates
-    date_cols = ["Date Created - Daily", "Date Closed - Daily", "Last Update Date - Daily"]
+    # ---------------------------------------------------
+    # FIXED DATE COLUMNS (NEW NAMES)
+    # ---------------------------------------------------
+    date_cols = ["Date Created", "Date Closed", "Last Update Date"]
     for col in date_cols:
         df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
 
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
 
-    # Days Open
-    df["Days Open"] = df["Date Created - Daily"].apply(
+    # ---------------------------------------------------
+    # DAYS OPEN (safe)
+    # ---------------------------------------------------
+    df["Days Open"] = df["Date Created"].apply(
         lambda d: (today - d.date()).days if pd.notnull(d) else 0
     )
 
     # ---------------------------------------------------
-    # SUMMARY NUMBERS
+    # UPDATED SUMMARY NUMBERS
     # ---------------------------------------------------
 
+    # Open red flags = any "New"
     total_open = df[df["Status"].str.contains("New", na=False)].shape[0]
+
+    # New since yesterday
     new_since_yesterday = df[
         (df["Status"].str.contains("New", na=False)) &
-        (df["Date Created - Daily"].dt.date == yesterday)
+        (df["Date Created"].dt.date == yesterday)
     ].shape[0]
-    closed_since_yesterday = df[df["Date Closed - Daily"].dt.date == yesterday].shape[0]
+
+    # Closed since yesterday
+    closed_since_yesterday = df[
+        df["Date Closed"].dt.date == yesterday
+    ].shape[0]
+
+    # Critical items = any Red Flag (New or Closed)
     critical_items = df[df["Status"].str.contains("Red Flag", na=False)].shape[0]
 
     # ---------------------------------------------------
@@ -124,7 +137,7 @@ if uploaded_file:
     """
 
     # ---------------------------------------------------
-    # ATTACH INDIVIDUAL RED FLAG CARDS
+    # ATTACH INDIVIDUAL RED FLAG CARDS (NEW COLUMN NAMES)
     # ---------------------------------------------------
 
     open_items = df[df["Status"].str.contains("New", na=False)]
@@ -134,13 +147,13 @@ if uploaded_file:
         summary = row["Issue description"] or "No summary provided."
         last_update = row["Last Update"] or "No recent update."
         last_update_date = (
-            row["Last Update Date - Daily"].date().strftime("%d %b %Y")
-            if pd.notnull(row["Last Update Date - Daily"])
+            row["Last Update Date"].date().strftime("%d %b %Y")
+            if pd.notnull(row["Last Update Date"])
             else "—"
         )
         date_logged = (
-            row["Date Created - Daily"].date().strftime("%d %b %Y")
-            if pd.notnull(row["Date Created - Daily"])
+            row["Date Created"].date().strftime("%d %b %Y")
+            if pd.notnull(row["Date Created"])
             else "—"
         )
 
@@ -170,10 +183,10 @@ if uploaded_file:
         """
 
     # ---------------------------------------------------
-    # CLOSED ITEMS
+    # CLOSED ITEMS (NEW COLUMN NAMES)
     # ---------------------------------------------------
 
-    closed_items = df[df["Date Closed - Daily"].notnull()]
+    closed_items = df[df["Status"].str.contains("Closed", na=False)]
 
     html_email += """
           </td>
@@ -181,14 +194,14 @@ if uploaded_file:
 
         <tr>
           <td style="padding:20px;">
-            <h3>Excluded Items</h3>
+            <h3>Excluded Items (Closed)</h3>
     """
 
     if closed_items.empty:
         html_email += "<p>No recently closed items.</p>"
     else:
         for _, row in closed_items.iterrows():
-            closed_date = row["Date Closed - Daily"].date().strftime("%d %b %Y")
+            closed_date = row["Date Closed"].date().strftime("%d %b %Y")
             html_email += f"<p>• {row['Ticket name']} (Closed {closed_date})</p>"
 
     html_email += """
@@ -231,7 +244,6 @@ if uploaded_file:
     # DOWNLOAD .EML (SAFE FOR OUTLOOK)
     # ---------------------------------------------------
 
-    # EML FORMAT: requires headers + HTML body
     eml_content = f"""Subject: Today's Red Flag Report
 MIME-Version: 1.0
 Content-Type: text/html; charset=UTF-8

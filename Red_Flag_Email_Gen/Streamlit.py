@@ -122,8 +122,8 @@ if uploaded_file:
             <table width="100%" class="metric-card" cellpadding="10">
               <tr>
                 <td align="center"><span style="font-size:28px;color:#d9534f;">{total_open}</span><br><small>Total Open</small></td>
-                <td align="center"><span style="font-size:28px;color:#2E52FE;">{new_since_yesterday}</span><br><small>New Since Yesterday</small></td>
-                <td align="center"><span style="font-size:28px;color:#5cb85c;">{closed_since_yesterday}</span><br><small>Closed Yesterday</small></td>
+                <td align="center"><span style="font-size:28px;color:#2E52FE;">{new_since_yesterday}</span><br><small>New</small></td>
+                <td align="center"><span style="font-size:28px;color:#5cb85c;">{closed_since_yesterday}</span><br><small>Closed</small></td>
                 <td align="center"><span style="font-size:28px;color:#d9534f;">{critical_items}</span><br><small>Critical</small></td>
               </tr>
             </table>
